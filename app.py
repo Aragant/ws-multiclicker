@@ -7,13 +7,13 @@ from websockets.server import serve
 
 GAME = {}
 
+
 async def broadcast(connected, message):
     for websocket in connected.copy():  # Crée une copie pour éviter les erreurs de modification
         try:
             await websocket.send(message)
         except Exception:
             connected.remove(websocket)  # Supprimez le WebSocket fermé
-
 
 async def play(websocket, game, connected):
     async for message in websocket:
