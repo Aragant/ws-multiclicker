@@ -1,6 +1,6 @@
 import asyncio
 import json
-import secrets
+import secrets 
 
 from multiclicker import Multiclicker
 from websockets.server import serve
