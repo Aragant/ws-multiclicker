@@ -5,6 +5,10 @@ import secrets
 # imported function 
 from websocket_service.broadcast import broadcast
 
+# imported enum 
+from event.event_type import EventType
+from event.event_factory import event_factory
+
 from multiclicker import Multiclicker
 from websockets import serve
 
@@ -22,7 +26,6 @@ async def play(websocket, game, connected):
                 "sumClick": game.click
                 }
             await broadcast(connected, json.dumps(event))
-
             
 
 async def handler(websocket):
@@ -30,28 +33,30 @@ async def handler(websocket):
     
     message = await websocket.recv()
     event = json.loads(message)
-    assert event["type"] == "login"
+    print(event["type"])
+    print("----------------")
+    print(EventType.LOGIN)
+    print(event)
+    assert event["type"] == EventType.LOGIN.value
     
-    user_data = {}
+    # user_data = {}
     
-    if "username" in event:
-        user_data["username"] = event["username"]
-        user_data["websocket"] = websocket
-        user_data["sumClick"] = 0
+    # if "username" in event:
+    #     user_data["username"] = event["username"]
+    #     user_data["websocket"] = websocket
+    #     user_data["sumClick"] = 0
     
     connected.add(websocket)
     
-    event = {
-        "type": "login",
-        "message": "OK",
-    }
+    event = event_factory(
+        EventType.LOGIN.value,
+        message = "OK"
+        )
+    
     await websocket.send(json.dumps(event))
     
     await play(websocket, game, connected)
     
-    
-    
-
 async def main():
     game = Multiclicker()
     connected = set()
