@@ -18,13 +18,13 @@ GAME = {}
 async def play(websocket, game, connected):
     async for message in websocket:
         event = json.loads(message)
-        if event["type"] == "click":
+        if event["type"] == EventType.CLICK.value:
             game.click_increment()
         
-            event = {
-                "type": "clicked",
-                "sumClick": game.click
-                }
+            event = event_factory(
+                EventType.CLICKED.value,
+                sumClick = game.click,
+                )
             await broadcast(connected, json.dumps(event))
             
 
@@ -33,18 +33,7 @@ async def handler(websocket):
     
     message = await websocket.recv()
     event = json.loads(message)
-    print(event["type"])
-    print("----------------")
-    print(EventType.LOGIN)
-    print(event)
     assert event["type"] == EventType.LOGIN.value
-    
-    # user_data = {}
-    
-    # if "username" in event:
-    #     user_data["username"] = event["username"]
-    #     user_data["websocket"] = websocket
-    #     user_data["sumClick"] = 0
     
     connected.add(websocket)
     
