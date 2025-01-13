@@ -24,7 +24,7 @@ async def play(websocket, game, connected):
         
             event = event_factory(
                 EventType.CLICKED,
-                **{EventKey.SUMCLICK: game.click}
+                **{EventKey.SUMCLICK: game.sumClick}
                 )
             await broadcast(connected, json.dumps(event))
             
@@ -40,7 +40,7 @@ async def handler(websocket):
     
     event = event_factory(
         EventType.LOGIN,
-        **{EventKey.MESSAGE: "OK"}
+        **{EventKey.MESSAGE: EventKey.OK}
         )
     
     await websocket.send(json.dumps(event))
