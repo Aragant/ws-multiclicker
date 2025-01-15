@@ -1,5 +1,4 @@
 class EventKey:
     TYPE = "type"
-    SUMCLICK = "sumClick"
+    SUMSCORE = "sumScore"
     MESSAGE = "message"
-    OK = "OK"

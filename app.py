@@ -8,24 +8,32 @@ from websocket_service.broadcast import broadcast
 # imported enum 
 from event.event_type import EventType
 from event.event_key import EventKey
+from event.event_value import EventValue
 from event.event_factory import event_factory
+from game.player import Player
 
-from multiclicker import Multiclicker
+from game.multiclicker import Multiclicker
 from websockets import serve
 
 GAME = {}
-
+PLAYER = {}
 
 async def play(websocket, game, connected):
     async for message in websocket:
         event = json.loads(message)
         if event[EventKey.TYPE] == EventType.CLICK:
-            game.click_increment()
+            game.score_increment()
+            PLAYER[websocket].score_increment()
         
             event = event_factory(
-                EventType.CLICKED,
-                **{EventKey.SUMCLICK: game.sumClick}
+                    EventType.CLICKED,
+                    **{EventKey.SUMSCORE: game.sumScore},
+                    player={
+                        "username": PLAYER[websocket].username,
+                        "sumScore": PLAYER[websocket].sumScore
+                    }
                 )
+            print(event)
             await broadcast(connected, json.dumps(event))
             
 
@@ -34,13 +42,17 @@ async def handler(websocket):
     
     message = await websocket.recv()
     event = json.loads(message)
+    print(event)
     assert event[EventKey.TYPE] == EventType.LOGIN
     
+    
+    
     connected.add(websocket)
+    PLAYER[websocket] = Player(event[EventValue.USERNAME])
     
     event = event_factory(
         EventType.LOGIN,
-        **{EventKey.MESSAGE: EventKey.OK}
+        **{EventKey.MESSAGE: EventValue.OK}
         )
     
     await websocket.send(json.dumps(event))
