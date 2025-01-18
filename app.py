@@ -18,27 +18,53 @@ from websockets import serve
 GAME = {}
 PLAYER = {}
 
-async def play(websocket, game, connected):
-    async for message in websocket:
-        event = json.loads(message)
-        if event[EventKey.TYPE] == EventType.CLICK:
-            game.score_increment()
-            PLAYER[id(websocket)].score_increment()
+async def play(game, websocket_id):
+    game.score_increment()
+    PLAYER[websocket_id].score_increment()
+
+    event = event_factory(
+        EventType.CLICKED,
+        **{EventKey.SUMSCORE: game.sumScore},
+        player={
+            "username": PLAYER[websocket_id].username,
+            "sumScore": PLAYER[websocket_id].sumScore
+        }
+    )
+    print(event)
+    return event
+
+async def setClans(clanName):
+    PLAYER[websocket_id].clan = clan
+    print(PLAYER[websocket_id])
+    
+    clans = list(set(player.clan for player in PLAYER.values()))
+    if clan not in clans:
         
-            event = event_factory(
-                    EventType.CLICKED,
-                    **{EventKey.SUMSCORE: game.sumScore},
-                    player={
-                        "username": PLAYER[id(websocket)].username,
-                        "sumScore": PLAYER[id(websocket)].sumScore
-                    }
-                )
-            print(event)
-            await broadcast(connected, json.dumps(event))
+    event = event_factory(
+        EventType.SET_CLANS,
+        player={
+            "username": PLAYER[websocket_id].username,
+            "clan": PLAYER[websocket_id].clan
+        }
+    )
+    return event
+
+async def joinClan(websocket_id, clan):
+    PLAYER[websocket_id].clan = clan
+    print(PLAYER[websocket_id])
+        
+    event = event_factory(
+        EventType.JOIN_CLAN,
+        player={
+            "clan": PLAYER[websocket_id].clan
+        }
+    )
+    return event
             
 
 async def handler(websocket):
     game, connected = GAME[0]
+    websocket_id = id(websocket) 
     
     message = await websocket.recv()
     event = json.loads(message)
@@ -57,12 +83,16 @@ async def handler(websocket):
     await websocket.send(json.dumps(event))
     
     
-    players = [ { "username": player.username, "sumScore": player.sumScore } for player in PLAYER.values() ]
+    players = [ { "username": player.username, "sumScore": player.sumScore, "clan": player.clan } for player in PLAYER.values() ]
+    # ca serais moin couteux de declarer un variable clans que l on incremente mais clan va sans doute decaler sur une api
+    clans = [ { "clan": clan, "players": [player.username for player in PLAYER.values() if player.clan == clan] } for clan in set([player.clan for player in PLAYER.values()]) ]
     event = event_factory(
         EventType.GET_GAME_INFO, 
         game={
             "sumScore": game.sumScore,
-            "playerScore": players
+            # on pourrais rennomer player score en players
+            "playerScore": players,
+            "clans": clans
         }
     )
     
@@ -70,8 +100,16 @@ async def handler(websocket):
     
     await websocket.send(json.dumps(event))
     
-    await play(websocket, game, connected)
-    
+    async for message in websocket:
+        event = json.loads(message)
+        if event[EventKey.TYPE] == EventType.CLICK:
+            response_event = await play(game, websocket_id)
+            await broadcast(connected, json.dumps(response_event))
+        elif event[EventKey.TYPE] == EventType.JOIN_CLAN:
+            print( event)
+            response_event = await joinClan(websocket_id, event[EventKey.CLAN_NAME])
+            await broadcast(connected, json.dumps(response_event))
+
 async def main():
     game = Multiclicker()
     connected = set()
