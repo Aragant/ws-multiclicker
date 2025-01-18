@@ -23,14 +23,14 @@ async def play(websocket, game, connected):
         event = json.loads(message)
         if event[EventKey.TYPE] == EventType.CLICK:
             game.score_increment()
-            PLAYER[websocket].score_increment()
+            PLAYER[id(websocket)].score_increment()
         
             event = event_factory(
                     EventType.CLICKED,
                     **{EventKey.SUMSCORE: game.sumScore},
                     player={
-                        "username": PLAYER[websocket].username,
-                        "sumScore": PLAYER[websocket].sumScore
+                        "username": PLAYER[id(websocket)].username,
+                        "sumScore": PLAYER[id(websocket)].sumScore
                     }
                 )
             print(event)
@@ -48,12 +48,25 @@ async def handler(websocket):
     
     
     connected.add(websocket)
-    PLAYER[websocket] = Player(event[EventValue.USERNAME])
+    PLAYER[id(websocket)] = Player(event[EventValue.USERNAME])
     
     event = event_factory(
         EventType.LOGIN,
         **{EventKey.MESSAGE: EventValue.OK}
         )
+    await websocket.send(json.dumps(event))
+    
+    
+    players = [ { "username": player.username, "sumScore": player.sumScore } for player in PLAYER.values() ]
+    event = event_factory(
+        EventType.GET_GAME_INFO, 
+        game={
+            "sumScore": game.sumScore,
+            "playerScore": players
+        }
+    )
+    
+    print(event)
     
     await websocket.send(json.dumps(event))
     
